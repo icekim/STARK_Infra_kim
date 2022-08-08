@@ -170,6 +170,16 @@ def create(data, cli_mode=False):
             Type: AWS::S3::Bucket
             Properties:
                 AccessControl: {s3_access_control}
+                CorsConfiguration:
+                    CorsRules:
+                        - AllowedHeaders:
+                            - '*'
+                          AllowedMethods:
+                            - PUT
+                          AllowedOrigins:
+                            - '*'
+                          ExposedHeaders:
+                            - ETag
                 BucketName: !Ref UserWebsiteBucketNameParameter
                 VersioningConfiguration:
                     Status: {s3_versioning}
@@ -222,10 +232,13 @@ def create(data, cli_mode=False):
                                         - 'dynamodb:UpdateItem'
                                         - 's3:PutObject'
                                         - 's3:PutObjectAcl'
+                                        - 's3:GetObject'
+                                        - 's3:GetObjectAcl'
                                     Resource: 
                                         - !Join [ ":", [ "arn:aws:dynamodb", !Ref AWS::Region, !Ref AWS::AccountId, "table/{ddb_table_name}"] ]
                                         - !Join [ ":", [ "arn:aws:dynamodb", !Ref AWS::Region, !Ref AWS::AccountId, "table/{ddb_table_name}/index/STARK-ListView-Index", ] ]
                                         - !Join [ "",  [ "arn:aws:s3:::", "{s3_bucket_name}", "/tmp/*"] ]
+                                        - !Join [ "",  [ "arn:aws:s3:::", "{s3_bucket_name}", "/uploaded_files/*"] ]
         STARKProjectDefaultAuthorizerInvokeRole:
             Type: AWS::IAM::Role
             Properties:
