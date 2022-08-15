@@ -82,22 +82,39 @@ def create(data):
     import os
     from fpdf import FPDF
 
-    ddb = boto3.client('dynamodb')
-    s3 = boto3.client("s3")
+    #STARK
+    import stark_core 
+
+    ddb    = boto3.client('dynamodb')
+    s3     = boto3.client("s3")
     s3_res = boto3.resource('s3')
 
     #######
     #CONFIG
-    ddb_table     = "{ddb_table_name}"
-    pk_field      = "{pk_varname}"
-    default_sk    = "{default_sk}"
-    sort_fields   = ["{pk_varname}", ]
-    bucket_name   = "{bucket_name}"
-    relationships = {relationships}
-    region_name   = os.environ['AWS_REGION']
-    page_limit    = 10
+    ddb_table         = stark_core.ddb_table
+    bucket_name       = stark_core.bucket_name
+    region_name       = stark_core.region_name
+    page_limit        = stark_core.page_limit
+    s3_link_prefix    = stark_core.bucket_url
+    tmp_prefix        = stark_core.bucket_tmp
+    pk_field          = "{pk_varname}"
+    default_sk        = "{default_sk}"
+    sort_fields       = ["{pk_varname}", ]
+    relationships     = {relationships}
+    upload_entity_dir = stark_core.upload_dir + "{entity_varname}/"
+
+    ############
+    #PERMISSIONS
+    stark_permissions = {{
+        'view': '{entity}|View',
+        'add': '{entity}|Add',
+        'delete': '{entity}|Delete',
+        'edit': '{entity}|Edit',
+        'report': '{entity}|Report'
+    }}
 
     def lambda_handler(event, context):
+        responseStatusCode = 200
 
         #Get request type
         request_type = event.get('queryStringParameters',{{}}).get('rt','')
@@ -172,23 +189,34 @@ def create(data):
                     }}
 
             if method == "DELETE":
-                response = delete(data)
+                if(stark_core.sec.is_authorized(stark_permissions['delete'], event, ddb)):
+                    response = delete(data)
+                else:
+                    responseStatusCode, response = stark_core.sec.authFailResponse
 
             elif method == "PUT":
-
-                #We can't update DDB PK, so if PK is different, we need to do ADD + DELETE
-                if data['orig_pk'] == data['pk']:
-                    response = edit(data)
+                if(stark_core.sec.is_authorized(stark_permissions['edit'], event, ddb)):
+                    if data['orig_pk'] == data['pk']:
+                        response = edit(data)
+                    else:
+                        #We can't update DDB PK, so if PK is different, we need to do ADD + DELETE
+                        response   = add(data, method)
+                        data['pk'] = data['orig_pk']
+                        response   = delete(data)
                 else:
-                    response   = add(data, method)
-                    data['pk'] = data['orig_pk']
-                    response   = delete(data)
+                    responseStatusCode, response = stark_core.sec.authFailResponse
 
             elif method == "POST":
                 if 'STARK_isReport' in data:
-                    response = report(data, default_sk)
+                    if(stark_core.sec.is_authorized(stark_permissions['report'], event, ddb)):
+                        response = report(data, default_sk)
+                    else:
+                        responseStatusCode, response = stark_core.sec.authFailResponse
                 else:
-                    response = add(data)
+                    if(stark_core.sec.is_authorized(stark_permissions['add'], event, ddb)):
+                        response = add(data)
+                    else:
+                        responseStatusCode, response = stark_core.sec.authFailResponse
 
             else:
                 return {{
@@ -242,7 +270,7 @@ def create(data):
 
         return {{
             "isBase64Encoded": False,
-            "statusCode": 200,
+            "statusCode": responseStatusCode,
             "body": json.dumps(response),
             "headers": {{
                 "Content-Type": "application/json",
@@ -357,11 +385,14 @@ def create(data):
         raw = response.get('Items')
 
         #Map to expected structure
-        items = []
-        for record in raw:
-            items.append(map_results(record))
+        response = {{}}
+        response['item'] = map_results(raw[0])"""
+    if with_upload : 
+        source_code +=f"""
+        response['s3_link_prefix'] = s3_link_prefix + upload_entity_dir"""
+    source_code+= f"""
 
-        return items
+        return response
 
     def delete(data):
         pk = data.get('pk','')
@@ -395,7 +426,7 @@ def create(data):
             extra_args = {{
                 'ACL': 'public-read'
             }}
-            s3_res.meta.client.copy(copy_source, bucket_name, 'uploaded_files/' + items, extra_args)
+            s3_res.meta.client.copy(copy_source, bucket_name, upload_entity_dir + items, extra_args)
         """
     source_code += f"""
         UpdateExpressionString = "SET {update_expression}" 
@@ -465,7 +496,7 @@ def create(data):
             extra_args = {{
                 'ACL': 'public-read'
             }}
-            s3_res.meta.client.copy(copy_source, bucket_name, 'uploaded_files/' + items, extra_args)
+            s3_res.meta.client.copy(copy_source, bucket_name, upload_entity_dir + items, extra_args)
         """
     source_code += f"""
         item={{}}
@@ -596,6 +627,9 @@ def create(data):
         report_list = []
         for key in mapped_results:
             temp_dict = {{}}
+            #remove primary identifiers and STARK attributes
+            key.pop("sk")
+            key.pop("STARK_uploaded_s3_keys")
             for index, value in key.items():
                 temp_dict[index.replace("_"," ")] = value
             report_list.append(temp_dict)
@@ -604,7 +638,6 @@ def create(data):
         writer = csv.DictWriter(file_buff, fieldnames=csv_header)
         writer.writeheader()
         for rows in report_list:
-            rows.pop("sk")
             for index in diff_list:
                 rows.pop(index)
             writer.writerow(rows)
@@ -620,8 +653,8 @@ def create(data):
 
         create_pdf(report_list, csv_header, pdf_file, report_params)
 
-        csv_bucket_key = bucket_name+".s3."+ region_name + ".amazonaws.com/tmp/" +csv_file
-        pdf_bucket_key = bucket_name+".s3."+ region_name + ".amazonaws.com/tmp/" +pdf_file
+        csv_bucket_key = tmp_prefix + csv_file
+        pdf_bucket_key = tmp_prefix + pdf_file
 
         return csv_bucket_key, pdf_bucket_key
 
