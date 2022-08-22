@@ -140,6 +140,7 @@ def create(data):
 
             html_code=f"""{ugly_hack}<b-form-radio-group id="{col_varname}" v-model="{entity_varname}.{col_varname}" :options="lists.{col_varname}" {buttons}></b-form-radio-group>"""
         elif col_type["type"] == "multi select combo":
+            dropup_flag = col_type.get('dropup',"false") #dropup by default is false as for now, only reporting is using this property
             html_code =f"""<b-form-group label-for="tags-with-dropdown">
                                 <b-form-tags id="tags-with-dropdown" v-model="multi_select_values.{col_varname}" no-outer-focus>
                                     <template v-slot="{{ tags, disabled, addTag, removeTag, inputAttrs, inputHandlers}}">
@@ -147,7 +148,7 @@ def create(data):
                                             <b-input-group>
                                                 <input v-bind="inputAttrs" v-on="inputHandlers" class="form-control" v-model= "custom_report.{col_varname}.value" no-outer-focus>
                                                 <b-input-group-append>
-                                                    <b-dropdown variant="outline-secondary"  right no-flip ref="{col_varname}" >
+                                                    <b-dropdown variant="outline-secondary" :dropup="{dropup_flag}" right no-flip ref="{col_varname}" >
                                                         <template #button-content>
                                                             <b-icon icon="tag-fill"></b-icon>
                                                         </template>
@@ -157,9 +158,11 @@ def create(data):
                                                             </b-form-group>
                                                         </b-dropdown-form>
                                                         <b-dropdown-divider></b-dropdown-divider>
-                                                        <b-dropdown-item-button v-for="option in {col_varname}" :key="option" @click="onOptionClick({{ option, addTag }}, '{col_varname}')" >
-                                                            {{{{ option.text }}}}
-                                                        </b-dropdown-item-button>
+                                                        <b-dropdown-form style="max-height: 350px; overflow-y: scroll;">
+                                                            <b-dropdown-item-button v-for="option in {col_varname}" :key="option" @click="onOptionClick({{ option, addTag }}, '{col_varname}')" >
+                                                                {{{{ option.text }}}}
+                                                            </b-dropdown-item-button>
+                                                        </b-dropdown-form>
                                                         <b-dropdown-text v-if="{col_varname}.length === 0">
                                                             There are no tags available to select
                                                         </b-dropdown-text>
@@ -168,7 +171,7 @@ def create(data):
                                             </b-input-group>
                                         </b-form-tags>  
                                         <ul v-if="tags.length > 0" class="list-inline d-inline-block">
-                                            <li v-for="tag in tags" :key="tag" class="list-inline-item mt-1">
+                                            <li v-for="tag in tags" :key="tag" class="list-inline-item mt-2">
                                                 <b-form-tag  @remove="removeTag(tag)"  :title="tag"  :disabled="disabled"  variant="info">
                                                     {{{{ tag }}}}
                                                 </b-form-tag>
@@ -210,12 +213,7 @@ def create(data):
                             <b-form-group label-for="tags-with-dropdown">
                                 <b-form-tags id="tags-with-dropdown" v-model="multi_select_values.{foreign_entity}" no-outer-focus class="mb-2">
                                     <template v-slot="{{ tags, disabled, addTag, removeTag }}">
-                                        <ul v-if="tags.length > 0" class="list-inline d-inline-block mb-2">
-                                            <li v-for="tag in tags" :key="tag" class="list-inline-item">
-                                                <b-form-tag @remove="removeTag(tag)" :title="tag" :disabled="disabled" variant="info" >{{{{ tag_display_text(tag) }}}}</b-form-tag>
-                                            </li>
-                                        </ul>
-                                        <b-dropdown size="sm" variant="outline-secondary" block menu-class="w-50" no-flip ref="{foreign_entity}" onmouseover="root.list_{foreign_entity}()" onfocus="root.list_{foreign_entity}()">
+                                        <b-dropdown size="sm" variant="outline-secondary" block menu-class="w-50" right no-flip ref="{foreign_entity}" onmouseover="root.list_{foreign_entity}()" onfocus="root.list_{foreign_entity}()">
                                             <template #button-content>
                                                 <b-icon icon="tag-fill"></b-icon> Choose {has_many.lower()}s
                                             </template>
@@ -232,6 +230,11 @@ def create(data):
                                                 There are no {has_many.lower()}s available to select
                                             </b-dropdown-text>
                                         </b-dropdown>
+                                        <ul v-if="tags.length > 0" class="list-inline d-inline-block mt-1">
+                                            <li v-for="tag in tags" :key="tag" class="list-inline-item">
+                                                <b-form-tag @remove="removeTag(tag)" :title="tag" :disabled="disabled" variant="info" >{{{{ tag_display_text(tag) }}}}</b-form-tag>
+                                            </li>
+                                        </ul>
                                     </template>
                                 </b-form-tags>
                             </b-form-group>"""
