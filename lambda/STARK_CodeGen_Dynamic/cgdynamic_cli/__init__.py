@@ -6,6 +6,7 @@ import json
 import os
 import textwrap
 import importlib
+import suggest_graphic
 
 #Extra modules
 import yaml
@@ -18,13 +19,6 @@ if 'libstark' in os.listdir():
 cg_ddb     = importlib.import_module(f"{prepend_dir}cgdynamic_dynamodb")
 cg_sam     = importlib.import_module(f"{prepend_dir}cgdynamic_sam_template")
 
-# import cgdynamic_dynamodb as cg_ddb
-# import cgdynamic_sam_template as cg_sam
-
-##unused imports
-# import cgdynamic_logout as cg_logout
-# import cgdynamic_buildspec as cg_build
-# import cgdynamic_template_conf as cg_conf
 import convert_friendly_to_system as converter
 import get_relationship as get_rel
 
@@ -73,6 +67,51 @@ def create(cloud_resources, project_basedir):
         with open(filename, "wb") as f:
             f.write(code['fileContent'])
 
+
+    #####################################################
+    #Create the STARK_Module entries for the new entities
+    new_STARK_Module_entries = []
+    module_types = ['Add', 'Edit', 'Delete', 'View', 'Report']
+    for entity in entities:
+        for module_type in module_types:
+            pk = entity + '|' + module_type 
+            entity_varname = converter.convert_to_system_name(entity)
+            if module_type == 'View':
+                target = entity_varname + '.html'
+                title = entity
+                is_menu_item = True
+            else:
+                target = entity_varname + '_' + module_type + '.html'
+                title = module_type + ' ' + entity
+                is_menu_item = False
+                
+            icon = 'images/' + suggest_graphic(entity)
+
+            item                      = {}
+            item['pk']                = {'S' : pk}
+            item['sk']                = {'S' : "STARK|module"}
+            item['Target']            = {'S' : target}
+            item['Descriptive_Title'] = {'S' : title}
+            item['Description']       = {'S' : ""}
+            item['Module_Group']      = {'S' : "Default"}
+            item['Is_Menu_Item']      = {'BOOL' : is_menu_item}
+            item['Is_Enabled']        = {'BOOL' : True}
+            item['Icon']              = {'S' : icon}
+            item['Image_Alt']         = {'S' : ""}
+            item['Priority']          = {'N' : "0"}
+            item['STARK-ListView-sk'] = {'S' : pk}
+
+            new_STARK_Module_entries.append({"PutRequest": {"Item": item}})
+
+    with open("STARK_modules_data.json","wb") as f:
+        f.write(('{"' + ddb_table_name + '": ' + json.dumps(new_STARK_Module_entries) + '}').encode())
+
+    #FIXME:This should be a separate, independently-triggerable command in STARK CLI
+    os.system("aws dynamodb batch-write-item --request-items file://STARK_modules_data.json")
+
+
 def create_template_from_cloud_resources(data):
     cf_template = cg_sam.create(data, cli_mode=True)
     return cf_template
+
+
