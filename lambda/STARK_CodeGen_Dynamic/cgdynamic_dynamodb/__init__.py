@@ -83,6 +83,7 @@ def create(data):
     #STARK
     import stark_core 
     from stark_core import utilities
+    from stark_core import validation
 
     ddb    = boto3.client('dynamodb')
     s3     = boto3.client("s3")
@@ -220,13 +221,27 @@ def create(data):
 
             elif method == "PUT":
                 if(stark_core.sec.is_authorized(stark_permissions['edit'], event, ddb)):
-                    if data['orig_pk'] == data['pk']:
-                        response = edit(data)
+                    payload = data
+                    payload['Customer_Type'] = data['pk']
+                    invalid_payload = validation.validate_form(payload, metadata)
+                    if len(invalid_payload) > 0:
+                        return {{
+                            "isBase64Encoded": False,
+                            "statusCode": 200,
+                            "body": json.dumps(invalid_payload),
+                            "headers": {{
+                                "Content-Type": "application/json",
+                            }}
+                        }}
+                        
                     else:
-                        #We can't update DDB PK, so if PK is different, we need to do ADD + DELETE
-                        response   = add(data, method)
-                        data['pk'] = data['orig_pk']
-                        response   = delete(data)
+                        if data['orig_pk'] == data['pk']:
+                            response = edit(data)
+                        else:
+                            #We can't update DDB PK, so if PK is different, we need to do ADD + DELETE
+                            response   = add(data, method)
+                            data['pk'] = data['orig_pk']
+                            response   = delete(data)
                 else:
                     responseStatusCode, response = stark_core.sec.authFailResponse
 
@@ -238,7 +253,21 @@ def create(data):
                         responseStatusCode, response = stark_core.sec.authFailResponse
                 else:
                     if(stark_core.sec.is_authorized(stark_permissions['add'], event, ddb)):
-                        response = add(data)
+                        payload = data
+                        payload['Customer_Type'] = data['pk']
+                        invalid_payload = validation.validate_form(payload, metadata)
+                        if len(invalid_payload) > 0:
+                            return {{
+                                "isBase64Encoded": False,
+                                "statusCode": 200,
+                                "body": json.dumps(invalid_payload),
+                                "headers": {{
+                                    "Content-Type": "application/json",
+                                }}
+                            }}
+                            
+                        else:
+                            response = add(data)
                     else:
                         responseStatusCode, response = stark_core.sec.authFailResponse
 
@@ -670,17 +699,37 @@ def create(data):
 
     def prepare_pdf_data(data_to_tuple, master_fields, pdf_filename, report_params):
         #FIXME: PDF GENERATOR: can be outsourced to a layer, for refining 
+        master_fields.insert(0, '#')
+        numerical_columns = {{}}
+        for key, items in metadata.items():
+            if items['data_type'] == 'number':
+                numerical_columns.update({{key: 0}})
         row_list = []
+        counter = 1 
         for key in data_to_tuple:
             column_list = []
             for index in master_fields:
-                column_list.append(key[index])
+                if(index != '#'):
+                    if index in numerical_columns.keys():
+                        numerical_columns[index] += int(key[index])
+                    column_list.append(key[index])
+            column_list.insert(0, str(counter)) 
             row_list.append(tuple(column_list))
+            counter += 1
+
+        if len(numerical_columns) > 0:
+            column_list = []
+            for values in master_fields:
+                if values in numerical_columns:
+                    column_list.append(str(numerical_columns.get(values, '')))
+                else:
+                    column_list.append('')
+            row_list.append(column_list)
 
         header_tuple = tuple(master_fields) 
         data_tuple = tuple(row_list)
         
-        pdf = utilities.create_pdf(header_tuple, data_tuple, report_params, pk_field)
+        pdf = utilities.create_pdf(header_tuple, data_tuple, report_params, pk_field, metadata)
         s3_action = s3.put_object(
             ACL='public-read',
             Body= pdf.output(),
