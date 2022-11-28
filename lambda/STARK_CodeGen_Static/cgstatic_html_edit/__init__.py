@@ -108,19 +108,19 @@ def create(data):
                     })
                     
                     source_code += f"""
-                                                        <b-form-group class="form-group col-lg-2" label="{rel_col_key}" label-for="{rel_col_varname}" :invalid-feedback="many_entity.{child_entity_varname}.validation_properties[index].{rel_col_varname}.feedback">
+                                                        <b-form-group class="form-group col-sm" label="{rel_col_key}" label-for="{rel_col_varname}" :invalid-feedback="many_entity.{child_entity_varname}.validation_properties[index].{rel_col_varname}.feedback">
                                                             {rel_html_control_code}
                                                         </b-form-group>"""
 
                 source_code += f"""
-                                                        <div class="form-group col-lg-2 ">
+                                                        <div class="form-group col-sm-0.5 ">
                                                             <b-form-group class="form-group" label="Remove">
-                                                                <input type="button" class="btn bg-danger" alt="Delete" width="40" height="40" @click="many_{child_entity_varname}.remove_row(index)" value="X">
+                                                                <input type="button" class="btn bg-danger" alt="Delete" width="40" height="40" @click="many_entity.{child_entity_varname}.remove_row(index)" value="X">
                                                             </b-form-group>
                                                         </div> 
                                                     </div>
                                                     <div>
-                                                        <input type="button" class="btn btn-success mt-3 mt-lg-0" @click="many_{child_entity_varname}.add_row()" value="Add"/>
+                                                        <input type="button" class="btn btn-success mt-3 mt-lg-0" @click="many_entity.{child_entity_varname}.add_row()" value="Add"/>
                                                     </div>
                                                 </form>
                                             </div>
