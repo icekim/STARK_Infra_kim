@@ -52,7 +52,7 @@ var root = new Vue({
                 fr.readAsText(this.yaml_file)
                 fr.onload = function() {
                     root.form.data_model_temp = fr.result;
-                    root.form.data_model = `__STARK_project_name__: ${root.project_name}\n${fr.result}`
+                    root.form.data_model = `__STARK_project_name__: ${root.project_name}\n__STARK_default_password__:${root.default_pass}\n${fr.result}`
                 }; 
             }
             else
@@ -73,16 +73,52 @@ var root = new Vue({
 
             if((!this.default_pass.length)) 
             {
+                message.push('Default Password')
+                console.log('a')
                 valid_form = false
                 this.validation_properties.default_pass.feedback = 'Please enter password.'
+                this.validation_properties.default_pass.state = false
+                if((!this.default_pass.length) && (this.confirm_default_pass.length)) 
+                {
+                    console.log('a.a')
+                    this.validation_properties.confirm_default_pass.state = false
+                    this.validation_properties.confirm_default_pass.feedback = ''
+                }
+                else if((!this.default_pass.length) && (!this.confirm_default_pass.length)) 
+                {
+                    this.validation_properties.confirm_default_pass.feedback = ''
+                    this.validation_properties.confirm_default_pass.state = null
+                }
+                
             } 
-            else if (!this.confirm_default_pass)
+            
+            if((this.default_pass.length) && (!this.confirm_default_pass.length)) 
             {
+                message.push('Default Password')
+                console.log('b')
                 valid_form = false
+                
                 this.validation_properties.confirm_default_pass.feedback = 'Please confirm password.'
-            } else if (this.default_pass != this.confirm_default_pass) {
-                valid_form = false
-                this.validation_properties.confirm_default_pass.feedback = 'Passwords do not match!'
+                this.validation_properties.confirm_default_pass.state = false
+                this.validation_properties.default_pass.state = true
+            }
+            if((this.default_pass.length) && (this.confirm_default_pass.length))  {
+                console.log('c')
+                if(this.default_pass != this.confirm_default_pass)
+                {
+                    message.push('Default Password')
+                    valid_form = false
+                    console.log('d')
+                    this.validation_properties.confirm_default_pass.feedback = 'Passwords do not match'
+                    this.validation_properties.default_pass.feedback = ''
+                    this.validation_properties.confirm_default_pass.state = false
+                } 
+                else {
+                    
+                    console.log('e')
+                    this.validation_properties.default_pass.state = true
+                    this.validation_properties.confirm_default_pass.state = true
+                }
             }
             
 
@@ -109,7 +145,7 @@ var root = new Vue({
             let data = {
                 data_model: this.form.data_model
             }
-
+            console.log(data)
             console.log(JSON.stringify(data))
             
             let fetchData = {
