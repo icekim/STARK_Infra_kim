@@ -11,8 +11,7 @@ def parse(data):
     for entity in entities:
         parsed[entity] = {}
         parsed[entity]["pk"] = data_model.get(entity).get('pk')
-        if "sequence" in data_model.get(entity):
-            parsed[entity]["sequence"] = {}
+        parsed[entity]["sequence"] = {}
         parsed[entity]["data"] = {}
         
 

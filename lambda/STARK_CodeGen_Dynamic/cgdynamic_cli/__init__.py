@@ -72,9 +72,14 @@ def create(cloud_resources, project_basedir):
                 for key in items:
                     for value in key:
                         key[value] = converter.convert_to_system_name(key[value])
+
+        seq = {}
+        if len(models[entity]["sequence"]) > 0:
+            seq = models[entity]["sequence"]
+
         data = {
             "Entity": entity_varname,
-            # "Sequence": models[entity]["sequence"], 
+            "Sequence": seq, 
             "Columns": models[entity]["data"],
             "PK": models[entity]["pk"],
             "DynamoDB Name": ddb_table_name,
@@ -86,8 +91,6 @@ def create(cloud_resources, project_basedir):
             "Project Name": project_varname
         }
 
-        if "sequence" in models[entity]:
-            data["Sequence"] = models[entity]["sequence"]
             
         print(data) 
 
