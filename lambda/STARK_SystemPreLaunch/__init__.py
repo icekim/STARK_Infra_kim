@@ -94,7 +94,6 @@ def create_handler(event, context):
                     TableName=ddb_table_name,
                     Item=business_module,
                 )
-                print(response)
 
     #################################
     #Create default user and password
