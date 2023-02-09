@@ -102,205 +102,203 @@ const STARK_Validator = {
                         this.validation_results[table]['error_messages'].push(this.fetch_error_message('MISSING_PK', [table]))
                         valid_column = false
                     }
-                    
-                }
-                else {
-                    this.validation_results[table]['error_messages'].push(this.fetch_error_message('MISSING_PK', [table]))
-                    valid_column = false
-                }
-                // sequences are optional
-                console.log(table_element.hasOwnProperty('sequence'))
-                if(table_element.hasOwnProperty('sequence')) {
-                    let valid_column = true
-                    console.log(table_element['sequence'])
-                    //sequence must be object
-                    if(typeof table_element['sequence'] === 'object' && table_element['sequence'] instanceof Array) {
-                        console.log('here1')
-                        this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_SEQUENCE_ATTRIBUTES',[table, typeof table_element['sequence']]))
-                        valid_column = false
-                    }
-                    else {
-                        //start checking here
-                        // check if table has sequence/not null
-                        if (table_element['sequence'] != null) {
-                            
-                            arr_properties = ['current_counter', 'prefix', 'left_pad']
-
-                            Object.keys(table_element['sequence']).forEach(element => {
-                                property_value = table_element['sequence'][element]
-                                if(this.is_valid_property_of_control_type(element, arr_properties)) {
-                                    //data type checker
-                                    if(element == 'current_counter' ||  element == 'left_pad') {
-                                        if(typeof(property_value) === 'number' && Number.isInteger(property_value)) {
-                                            //do nothing..
-                                        }
-                                        else {
-                                            this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, 'Sequence']))
-                                            valid_column = false
-                                        }
-                                    }
-                                    if(element == 'prefix') {
-                                        if(typeof(property_value) === 'string') {
-                                            //do nothing..
-                                        }
-                                        else {
-                                            this.validation_results[table]['error_messages'].push(this.fetch_error_message('STRING_ONLY', [element, 'Sequence']))
-                                            valid_column = false
-                                        }
-                                    }
-                                }
-                                else {
-                                    //if property is not a valid property in arr_properties
-                                    this.validation_results[table]['warning_messages'].push(this.fetch_warning_message('NOT_A_PROPERTY_OF_SEQUENCE', [element]))
-                                }
-                            });
-
-                            //sequence with missing property based from arr_properties
-                            missing_seq_attributes = arr_properties.filter(x => !Object.keys(table_element['sequence']).includes(x));
-                            if(missing_seq_attributes.length > 0) {
-                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_SEQUENCE', [missing_seq_attributes]))
-                                valid_column = false
-                            }
-                            
-                        } else {
-                            //with sequence but no property at all
-                            this.validation_results[table]['error_messages'].push(this.fetch_error_message('NO_SEQUENCE', []))
+                    // sequences are optional
+                    console.log(table_element.hasOwnProperty('sequence'))
+                    if(table_element.hasOwnProperty('sequence')) {
+                        let valid_column = true
+                        console.log(table_element['sequence'])
+                        //sequence must be object
+                        if(typeof table_element['sequence'] === 'object' && table_element['sequence'] instanceof Array) {
+                            console.log('here1')
+                            this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_SEQUENCE_ATTRIBUTES',[table, typeof table_element['sequence']]))
                             valid_column = false
                         }
-                        
-                        this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_SEQUENCE_ATTRIBUTES',[table, typeof table_element['sequence']]))
-                        valid_column = false
-                    }
-                    
-                }
-                // must have data with value of array
-                if(table_element.hasOwnProperty('data')) {
-                    table_attributes = table_element['data']
-    
-                    if(typeof table_attributes == 'object' && table_attributes instanceof Array) {
-                        //do nothing
-                        column_position = 0
-                        table_attributes.forEach(column => {
-                            column_position++
-                            if(typeof(column) == 'object') {
-                                if(Object.keys(column).length == 1) {
-                                    let column_name = Object.keys(column)[0]
-                                    let column_value = column[column_name]
-                                    let valid_column = true
-    
-                                    if(typeof(column_value) === 'string') {
-                                        if (this.arr_valid_simple_control_types.indexOf(column_value) !== -1) {
-                                            //Simple attributes
-                                            // console.log('Simple',column_value)
-                                            // console.log(typeof column_value)
+                        else {
+                            //start checking here
+                            // check if table has sequence/not null
+                            if (table_element['sequence'] != null) {
+                                
+                                arr_properties = ['current_counter', 'prefix', 'left_pad']
+
+                                Object.keys(table_element['sequence']).forEach(element => {
+                                    property_value = table_element['sequence'][element]
+                                    if(this.is_valid_property_of_control_type(element, arr_properties)) {
+                                        //data type checker
+                                        if(element == 'current_counter' ||  element == 'left_pad') {
+                                            if(typeof(property_value) === 'number' && Number.isInteger(property_value)) {
+                                                //do nothing..
+                                            }
+                                            else {
+                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, 'Sequence']))
+                                                valid_column = false
+                                            }
                                         }
-                                        else {
-                                            this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_CONTROL_TYPE', [column_name]))
-                                            valid_column = false
+                                        if(element == 'prefix') {
+                                            if(typeof(property_value) === 'string') {
+                                                //do nothing..
+                                            }
+                                            else {
+                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('STRING_ONLY', [element, 'Sequence']))
+                                                valid_column = false
+                                            }
                                         }
                                     }
                                     else {
-                                        if((typeof(column_value) === 'object' && column_value instanceof Array) && typeof(column_value.find(element => typeof(element) == 'object')) != 'object') {
-                                            // //Shortcut radio button
-                                            // console.log('Simple radio button',column_value)
+                                        //if property is not a valid property in arr_properties
+                                        this.validation_results[table]['warning_messages'].push(this.fetch_warning_message('NOT_A_PROPERTY_OF_SEQUENCE', [element]))
+                                    }
+                                });
+
+                                //sequence with missing property based from arr_properties
+                                missing_seq_attributes = arr_properties.filter(x => !Object.keys(table_element['sequence']).includes(x));
+                                if(missing_seq_attributes.length > 0) {
+                                    this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_SEQUENCE', [missing_seq_attributes]))
+                                    valid_column = false
+                                }
+                                
+                            } else {
+                                //with sequence but no property at all
+                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('NO_SEQUENCE', []))
+                                valid_column = false
+                            }
+                            
+
+                        }
+                        console.log(valid_column)
+                    }
+                    // must have data with value of array
+                    if(table_element.hasOwnProperty('data')) {
+                        table_attributes = table_element['data']
+        
+                        if(typeof table_attributes == 'object' && table_attributes instanceof Array) {
+                            //do nothing
+                            column_position = 0
+                            table_attributes.forEach(column => {
+                                column_position++
+                                if(typeof(column) == 'object') {
+                                    if(Object.keys(column).length == 1) {
+                                        let column_name = Object.keys(column)[0]
+                                        let column_value = column[column_name]
+                                        let valid_column = true
+        
+                                        if(typeof(column_value) === 'string') {
+                                            if (this.arr_valid_simple_control_types.indexOf(column_value) !== -1) {
+                                                //Simple attributes
+                                                // console.log('Simple',column_value)
+                                                // console.log(typeof column_value)
+                                            }
+                                            else {
+                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_CONTROL_TYPE', [column_name]))
+                                                valid_column = false
+                                            }
                                         }
-                                        else if((typeof(column_value) === 'object' && column_value instanceof Object) && this.is_complex_control_types_object(column_value)) {
-                                            // Complex attributes
-                                            // console.log('Complex',column_value)
-                                            column_properties = column_value
-                                            control_type = column_properties['type']
-                                            
-                                            // FIXME: At one glance it is obvious that there are parts that are repeating, revisit for refactoring 
-                                            // maybe we can make this as dynamic as possible that can rely on metadata.
-    
-                                            //int spinner dec spinner
-                                            if(control_type == 'int-spinner' || control_type == 'decimal-spinner') {
-                                                //default properties
-                                                //spin_wrap = no-wrap
-                                                //spin_min = 0
-                                                //spin_step = 1 for int 0.1 for dec
-                                                //spin_max = 100 for int 10 for dec
-                                                arr_properties = ['min', 'max', 'wrap', 'spin_step']
+                                        else {
+                                            if((typeof(column_value) === 'object' && column_value instanceof Array) && typeof(column_value.find(element => typeof(element) == 'object')) != 'object') {
+                                                // //Shortcut radio button
+                                                // console.log('Simple radio button',column_value)
+                                            }
+                                            else if((typeof(column_value) === 'object' && column_value instanceof Object) && this.is_complex_control_types_object(column_value)) {
+                                                // Complex attributes
+                                                // console.log('Complex',column_value)
+                                                column_properties = column_value
+                                                control_type = column_properties['type']
                                                 
-                                                Object.keys(column_properties).forEach(element => {
-                                                    property_value = column_properties[element]
-                                                    if(this.is_valid_property_of_control_type(element, arr_properties)) {
-                                                        if(element == 'wrap') {
-                                                            if(['wrap', 'no-wrap'].indexOf(property_value) !== -1) {
-                                                                //do nothing..
-                                                            }
-                                                            else {
-                                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_INT_DEC_SPINNER_WRAP_VAL', [column_name]))
-                                                                valid_column = false
-                                                            }
-                                                        }
-    
-                                                        if(element == 'min' || element == 'max' || element == 'spin_step') {
-                                                            if(typeof(property_value) === 'number') {
-                                                                if(control_type == 'int-spinner') {
-                                                                    if(Number.isInteger(property_value)) {
-                                                                        // do nothing..
-                                                                    }
-                                                                    else {
-                                                                        this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, column_name]))
-                                                                        valid_column = false
-                                                                    }
+                                                // FIXME: At one glance it is obvious that there are parts that are repeating, revisit for refactoring 
+                                                // maybe we can make this as dynamic as possible that can rely on metadata.
+        
+                                                //int spinner dec spinner
+                                                if(control_type == 'int-spinner' || control_type == 'decimal-spinner') {
+                                                    //default properties
+                                                    //spin_wrap = no-wrap
+                                                    //spin_min = 0
+                                                    //spin_step = 1 for int 0.1 for dec
+                                                    //spin_max = 100 for int 10 for dec
+                                                    arr_properties = ['min', 'max', 'wrap', 'spin_step']
+                                                    
+                                                    Object.keys(column_properties).forEach(element => {
+                                                        property_value = column_properties[element]
+                                                        if(this.is_valid_property_of_control_type(element, arr_properties)) {
+                                                            if(element == 'wrap') {
+                                                                if(['wrap', 'no-wrap'].indexOf(property_value) !== -1) {
+                                                                    //do nothing..
+                                                                }
+                                                                else {
+                                                                    this.validation_results[table]['error_messages'].push(this.fetch_error_message('INVALID_INT_DEC_SPINNER_WRAP_VAL', [column_name]))
+                                                                    valid_column = false
                                                                 }
                                                             }
-                                                            else {
-                                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('NUMBER_ONLY', [element, column_name]))
-                                                                valid_column = false
+        
+                                                            if(element == 'min' || element == 'max' || element == 'spin_step') {
+                                                                if(typeof(property_value) === 'number') {
+                                                                    if(control_type == 'int-spinner') {
+                                                                        if(Number.isInteger(property_value)) {
+                                                                            // do nothing..
+                                                                        }
+                                                                        else {
+                                                                            this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, column_name]))
+                                                                            valid_column = false
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else {
+                                                                    this.validation_results[table]['error_messages'].push(this.fetch_error_message('NUMBER_ONLY', [element, column_name]))
+                                                                    valid_column = false
+                                                                }
                                                             }
                                                         }
-                                                    }
-                                                    else {
-                                                        this.validation_results[table]['warning_messages'].push(this.fetch_warning_message('NOT_A_PROPERTY_OF_CONTROL_TYPE', [element, control_type, column_name]))
-                                                    }
-                                                });
-                                            }
-                                            
-                                            //rating
-                                            else if(control_type == 'rating') {
-                                                arr_properties = ['max']
-                                                Object.keys(column_properties).forEach(element => {
-                                                    property_value = column_properties[element]
-                                                    if(this.is_valid_property_of_control_type(element, arr_properties)) {
-                                                        if(element == 'max' ) {
-                                                            if(typeof(property_value) === 'number' && Number.isInteger(property_value)) {
-                                                                //do nothing..
-                                                            }
-                                                            else {
-                                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, column_name]))
-                                                                valid_column = false
-                                                            }
+                                                        else {
+                                                            this.validation_results[table]['warning_messages'].push(this.fetch_warning_message('NOT_A_PROPERTY_OF_CONTROL_TYPE', [element, control_type, column_name]))
                                                         }
-                                                    }
-                                                    else {
-                                                        this.validation_results[table]['warning_messages'].push(this.fetch_warning_message('NOT_A_PROPERTY_OF_CONTROL_TYPE', [element, control_type, column_name]))
-                                                    }
-                                                });
-    
-                                            }
-                                            //tags
-                                            else if(control_type == 'tags') {
-                                                arr_properties = ['values', 'limit']
-                                                Object.keys(column_properties).forEach(element => {
-                                                    property_value = column_properties[element]
-                                                    if(this.is_valid_property_of_control_type(element, arr_properties)) {
-                                                        if(element == 'limit' ) {
-                                                            if(typeof(property_value) === 'number' && Number.isInteger(property_value)) {
-                                                                //do nothing..
-                                                            }
-                                                            else {
-                                                                this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, column_name]))
-                                                                valid_column = false
-                                                            }
-                                                        }
-                                                        
-                                                        if(element == 'values' ) {
-                                                            if((typeof(property_value) === 'object' && property_value instanceof Array)) {
-                                                                if (property_value.length > 1) {
+                                                    });
+                                                }
+                                                
+                                                //rating
+                                                else if(control_type == 'rating') {
+                                                    arr_properties = ['max']
+                                                    Object.keys(column_properties).forEach(element => {
+                                                        property_value = column_properties[element]
+                                                        if(this.is_valid_property_of_control_type(element, arr_properties)) {
+                                                            if(element == 'max' ) {
+                                                                if(typeof(property_value) === 'number' && Number.isInteger(property_value)) {
                                                                     //do nothing..
+                                                                }
+                                                                else {
+                                                                    this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, column_name]))
+                                                                    valid_column = false
+                                                                }
+                                                            }
+                                                        }
+                                                        else {
+                                                            this.validation_results[table]['warning_messages'].push(this.fetch_warning_message('NOT_A_PROPERTY_OF_CONTROL_TYPE', [element, control_type, column_name]))
+                                                        }
+                                                    });
+        
+                                                }
+                                                //tags
+                                                else if(control_type == 'tags') {
+                                                    arr_properties = ['values', 'limit']
+                                                    Object.keys(column_properties).forEach(element => {
+                                                        property_value = column_properties[element]
+                                                        if(this.is_valid_property_of_control_type(element, arr_properties)) {
+                                                            if(element == 'limit' ) {
+                                                                if(typeof(property_value) === 'number' && Number.isInteger(property_value)) {
+                                                                    //do nothing..
+                                                                }
+                                                                else {
+                                                                    this.validation_results[table]['error_messages'].push(this.fetch_error_message('INTEGER_ONLY', [element, column_name]))
+                                                                    valid_column = false
+                                                                }
+                                                            }
+                                                            
+                                                            if(element == 'values' ) {
+                                                                if((typeof(property_value) === 'object' && property_value instanceof Array)) {
+                                                                    if (property_value.length > 1) {
+                                                                        //do nothing..
+                                                                    }
+                                                                    else {
+                                                                        this.validation_results[table]['error_messages'].push(this.fetch_error_message('ARRAY_VALUE_MUST_HAVE_AT_LEAST_ONE_DATA', [element, column_name]))
+                                                                        valid_column = false
+                                                                    }
                                                                 }
                                                                 else {
                                                                     this.validation_results[table]['error_messages'].push(this.fetch_error_message('ARRAY_ONLY', [element, column_name]))
